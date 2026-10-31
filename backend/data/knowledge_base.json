@@ -1,0 +1,151 @@
+{
+  "injuries": {
+    "bruise": {
+      "what_it_is": "A bruise is an area of discolouration caused by small blood vessels under the skin leaking blood after an impact.",
+      "immediate_steps": [
+        "Rest the area and protect it from further injury.",
+        "Apply a cold pack wrapped in a cloth for short periods.",
+        "Raise the area if practical."
+      ],
+      "avoid": [
+        "Do not apply ice directly to skin.",
+        "Do not massage a fresh bruise."
+      ],
+      "good_signs": [
+        "Pain and swelling gradually reduce.",
+        "The colour changes and fades over time."
+      ],
+      "warning_signs": [
+        "Severe pain or swelling.",
+        "A bruise that appears without a known cause.",
+        "Numbness, difficulty moving the area, or worsening symptoms."
+      ]
+    },
+    "burn": {
+      "what_it_is": "A burn is skin damage caused by heat or another source.",
+      "immediate_steps": [
+        "Cool the burn under cool or lukewarm running water for 20 minutes when possible.",
+        "Remove jewellery or loose clothing near the burn unless stuck to the skin.",
+        "Cover loosely with a clean non-fluffy dressing after cooling."
+      ],
+      "avoid": [
+        "Do not use ice, butter, oils, or creams on a fresh burn.",
+        "Do not burst blisters.",
+        "Do not pull away clothing stuck to the burn."
+      ],
+      "good_signs": [
+        "Pain and redness gradually improve.",
+        "The area heals without spreading redness or discharge."
+      ],
+      "warning_signs": [
+        "Large, deep, chemical, or electrical burns.",
+        "Burns on the face, hands, feet, genitals, or major joints.",
+        "White, charred, numb, or leathery skin."
+      ]
+    },
+    "cut": {
+      "what_it_is": "A cut is a break in the skin.",
+      "immediate_steps": [
+        "Apply firm, direct pressure with clean gauze or cloth to control bleeding.",
+        "When bleeding is controlled, rinse the wound with clean running water.",
+        "Cover with a sterile dressing or clean bandage."
+      ],
+      "avoid": [
+        "Do not remove an object embedded in the wound.",
+        "Do not repeatedly lift the dressing to check bleeding; add another layer if needed."
+      ],
+      "good_signs": [
+        "Bleeding stops.",
+        "Redness, pain, and swelling do not worsen."
+      ],
+      "warning_signs": [
+        "Bleeding that will not stop.",
+        "A deep or gaping wound.",
+        "Loss of sensation or movement.",
+        "Signs of infection such as spreading redness, pus, or fever."
+      ]
+    }
+  },
+  "materials": [
+    {
+      "name": "clean water",
+      "aliases": [
+        "water"
+      ],
+      "safe_uses": [
+        "Use clean running water to gently rinse a cut."
+      ],
+      "avoid": []
+    },
+    {
+      "name": "clean cloth",
+      "aliases": [
+        "cloth"
+      ],
+      "safe_uses": [
+        "Use a clean cloth to apply direct pressure to bleeding."
+      ],
+      "avoid": []
+    },
+    {
+      "name": "gauze",
+      "aliases": [
+        "sterile gauze"
+      ],
+      "safe_uses": [
+        "Use clean gauze to apply pressure or cover a wound."
+      ],
+      "avoid": []
+    },
+    {
+      "name": "bandage",
+      "aliases": [
+        "adhesive bandage",
+        "plaster"
+      ],
+      "safe_uses": [
+        "Use to cover a minor wound after cleaning."
+      ],
+      "avoid": []
+    },
+    {
+      "name": "ice pack",
+      "aliases": [
+        "cold pack",
+        "ice"
+      ],
+      "safe_uses": [
+        "Wrap in cloth and apply briefly to a bruise."
+      ],
+      "avoid": [
+        "Do not put ice directly on skin or use ice to cool a burn."
+      ]
+    },
+    {
+      "name": "soap",
+      "aliases": [
+        "mild soap"
+      ],
+      "safe_uses": [
+        "Use to clean skin around a wound."
+      ],
+      "avoid": [
+        "Avoid putting soap deep inside an open wound."
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "name": "NHS: Burns and scalds",
+      "url": "https://www.nhs.uk/conditions/burns-and-scalds/"
+    },
+    {
+      "name": "NHS: Cuts and grazes",
+      "url": "https://www.nhs.uk/conditions/cuts-and-grazes/"
+    },
+    {
+      "name": "MedlinePlus: Bruises",
+      "url": "https://medlineplus.gov/ency/article/007213.htm"
+    }
+  ]
+}
