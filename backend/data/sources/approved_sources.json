@@ -1,0 +1,13 @@
+[
+  {"id": "nhs-cuts", "injury": "cut", "publisher": "NHS", "url": "https://www.nhs.uk/conditions/cuts-and-grazes/"},
+  {"id": "nhs-burns", "injury": "burn", "publisher": "NHS", "url": "https://www.nhs.uk/conditions/burns-and-scalds/"},
+  {"id": "nhs-bruises", "injury": "bruise", "publisher": "NHS", "url": "https://www.nhs.uk/conditions/black-eye/"},
+  {"id": "mayo-cuts", "injury": "cut", "publisher": "Mayo Clinic", "url": "https://www.mayoclinic.org/first-aid/first-aid-cuts/basics/art-20056711"},
+  {"id": "mayo-burns", "injury": "burn", "publisher": "Mayo Clinic", "url": "https://www.mayoclinic.org/first-aid/first-aid-burns/basics/art-20056649"},
+  {"id": "mayo-bruises", "injury": "bruise", "publisher": "Mayo Clinic", "url": "https://www.mayoclinic.org/first-aid/first-aid-bruise/basics/art-20056663"},
+  {"id": "medline-cuts", "injury": "cut", "publisher": "MedlinePlus", "url": "https://medlineplus.gov/ency/article/000043.htm"},
+  {"id": "medline-burns", "injury": "burn", "publisher": "MedlinePlus", "url": "https://medlineplus.gov/ency/article/000030.htm"},
+  {"id": "medline-bruises", "injury": "bruise", "publisher": "MedlinePlus", "url": "https://medlineplus.gov/ency/article/007213.htm"},
+  {"id": "redcross-wounds", "injury": "cut", "publisher": "American Red Cross", "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/wounds"},
+  {"id": "redcross-burns", "injury": "burn", "publisher": "American Red Cross", "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/burns"}
+]

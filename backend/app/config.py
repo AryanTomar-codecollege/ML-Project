@@ -44,6 +44,16 @@ CLASS_NAMES = ['bruise', 'burn', 'cut']
 
 IMAGE_SIZE = 224
 
+# Local RAG settings. The embedding model is downloaded once when the corpus is
+# first indexed, then reused from the local Hugging Face cache.
+RAG_ENABLED = os.getenv('RAG_ENABLED', 'true').strip().lower() in {'1', 'true', 'yes'}
+RAG_DB_PATH = Path(os.getenv('RAG_DB_PATH', str(ROOT / 'data' / 'chroma')))
+RAG_COLLECTION = os.getenv('RAG_COLLECTION', 'first_aid_guidance')
+RAG_EMBEDDING_MODEL = os.getenv(
+    'RAG_EMBEDDING_MODEL', 'sentence-transformers/all-MiniLM-L6-v2'
+).strip()
+RAG_MIN_SCORE = float(os.getenv('RAG_MIN_SCORE', '0.25'))
+
 if LLM_PROVIDER not in {'groq', 'omniroute'}:
     raise ValueError(
         "LLM_PROVIDER must be 'groq' or 'omniroute'"
