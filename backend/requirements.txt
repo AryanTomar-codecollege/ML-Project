@@ -3,6 +3,10 @@ uvicorn[standard]
 python-multipart
 python-dotenv
 pillow
+beautifulsoup4
 torch
 torchvision
 requests
+chromadb>=0.5,<2.0
+sentence-transformers>=3.0,<6.0
+
