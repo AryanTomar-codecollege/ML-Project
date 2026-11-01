@@ -1,551 +1,474 @@
-::: {align="center"}
+<div align="center">
 
-🩹 WoundGuide
+# 🩹 WoundGuide
 
-AI-Powered First-Aid Guidance with Image Classification & Retrieval-Augmented Generation
+### AI First-Aid Assistant — classify an injury photo, get source-cited first-aid guidance
 
-Classify an injury image. Retrieve reviewed first-aid evidence.
-Explore clickable source citations.
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-EfficientNet--B0-EE4C2C?logo=pytorch&logoColor=white)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-RAG-FF6F00)
+![Groq](https://img.shields.io/badge/LLM-Groq-F55036)
+![Status](https://img.shields.io/badge/status-college%20prototype-orange)
 
-<br>{=html}
+</div>
 
+<!--
+  TIP: add a screenshot here after you run the app, e.g.
+  1. Save it as docs/screenshot.png
+  2. Replace this comment with:  ![WoundGuide UI](docs/screenshot.png)
+-->
 
+> [!WARNING]
+> **Not a medical device.** WoundGuide is an educational college project. It does **not** diagnose, does **not** judge severity, and has **not** been clinically validated. For heavy bleeding, deep or large wounds, serious burns, worsening symptoms, or any doubt — get professional medical care.
 
+---
 
+## 📑 Table of Contents
 
+1. [What it does](#-what-it-does)
+2. [How it works](#-how-it-works)
+3. [Tech stack](#-tech-stack)
+4. [Project structure](#-project-structure)
+5. [Run it on your machine (step by step)](#-run-it-on-your-machine-step-by-step)
+6. [Using the app](#-using-the-app)
+7. [API reference](#-api-reference)
+8. [Configuration (`.env`)](#-configuration-env)
+9. [Optional: rebuild the RAG knowledge index](#-optional-rebuild-the-rag-knowledge-index)
+10. [Troubleshooting](#-troubleshooting)
+11. [Known limitations](#-known-limitations)
 
+---
 
+## ✨ What it does
 
-:::
+| | Feature |
+|---|---|
+| 📷 | Upload a photo of a **cut, burn or bruise** |
+| 🧠 | **EfficientNet-B0** classifies it into 5 classes |
+| 🚫 | Photos of healthy skin or unrelated objects are **rejected** (no medical guidance is generated) |
+| 📚 | **RAG**: retrieves passages from reviewed sources (NHS, MedlinePlus, Red Cross) stored in a local ChromaDB |
+| 🧰 | **Item-aware advice**: tell it what you have (clean water, cloth, gauze, bandage, ice pack, soap) |
+| 🔗 | **Clickable citations** next to individual guidance statements |
+| ⚠️ | Low-confidence predictions are refused instead of guessed |
 
-[!IMPORTANT] Educational prototype only --- not a medical
-device. WoundGuide does not diagnose injuries, determine severity,
-or replace a qualified healthcare professional. Model confidence and
-source citations do not guarantee medical accuracy. Seek urgent
-medical care for severe bleeding, deep or large wounds, serious burns,
-rapidly worsening symptoms, or any emergency.
+**Class order** (checkpoint and `backend/app/config.py` must match exactly):
 
-✨ Overview
+`bruise` · `burn` · `cut` · `no_injury` · `not_known_image`
 
-WoundGuide is a web-based AI project that combines image classification
-with Retrieval-Augmented Generation (RAG) to present first-aid
-information grounded in a locally indexed collection of reviewed
-sources.
+Only `bruise`, `burn` and `cut` proceed to first-aid retrieval.
 
-The application classifies an uploaded image, retrieves relevant
-passages, and displays guidance with clickable source links where valid
-citations are available.
+---
 
-🚀 Features
+## 🔬 How it works
 
-🖼️ Image classification using an EfficientNet-B0 model.
-
-🧭 Five prediction classes: bruise, burn, cut,
-no_injury, and not_known_image.
-
-🛑 Rejection handling for predictions classified as no_injury
-or not_known_image.
-
-📚 RAG retrieval with ChromaDB and Sentence Transformers.
-
-🔎 Evidence-linked guidance with clickable sources beside
-individual instructions when valid citations are returned.
-
-🧰 Item-aware suggestions based on available supplies, such as
-clean water, cloth, gauze, and bandages.
-
-⚡ FastAPI backend with health status and interactive API
-documentation.
-
-🧩 Configurable LLM provider using Groq or an OpenAI-compatible
-OmniRoute endpoint.
-
-🧱 Tech Stack
-
-Layer              Technologies
-
-Frontend           React, Vite, JavaScript, CSS
-Backend API        Python, FastAPI, Uvicorn
-Image model        PyTorch, Torchvision, EfficientNet-B0
-Retrieval          ChromaDB, Sentence Transformers
-Source ingestion   Requests, Beautiful Soup
-LLM provider       Groq or OpenAI-compatible OmniRoute
-
-🖼️ Application Flow
-
+```mermaid
 flowchart TD
-    A[Upload injury image] --> B[EfficientNet-B0 classifier]
-    B --> C{Prediction accepted?}
-    C -->|No injury / unknown / uncertain| D[Reject injury guidance]
-    C -->|Bruise / burn / cut| E[Retrieve reviewed passages]
-    E --> F[ChromaDB + Sentence Transformers]
-    F --> G[Configured LLM formats evidence]
-    G --> H[Guidance with source citations]
-    H --> I[React frontend]
+    A[👤 User uploads photo + lists items] --> B[⚛️ React + Vite frontend]
+    B -->|POST /api/analyze| C[🚀 FastAPI backend]
+    C --> D{{🧠 EfficientNet-B0 classifier}}
+    D -->|no_injury / not_known_image| X1[❌ Rejected: not an injury]
+    D -->|low confidence or small margin| X2[❌ Rejected: model unsure]
+    D -->|bruise / burn / cut| E[📚 Retriever: MiniLM embeddings + ChromaDB]
+    E --> F[🤖 LLM: Groq or OmniRoute<br/>only rewrites retrieved passages]
+    F --> G[✅ Validate citation IDs against retrieved evidence]
+    G --> H[📋 Structured guidance + source links]
+    H --> B
+```
 
-🏷️ Model Classes
+**In plain words:** the image model decides *what kind* of injury it is → the retriever finds matching passages from trusted sources → the LLM only *rephrases* those passages into short steps → the backend checks every citation ID is real before the UI shows it. If retrieval or the LLM fails, **no guidance is generated** (there is no silent medical fallback).
 
-The expected class order is defined by the model configuration and must
-match the trained checkpoint exactly:
+---
 
-Index Class               Behavior
+## 🧰 Tech stack
 
-  `0` `bruise`            Continue to injury guidance
-  `1` `burn`              Continue to injury guidance
-  `2` `cut`               Continue to injury guidance
-  `3` `no_injury`         Reject injury guidance
-  `4` `not_known_image`   Reject injury guidance
+| Layer | Tools |
+|---|---|
+| Frontend | React 18, Vite 5 |
+| Backend | Python 3.11, FastAPI, Uvicorn |
+| Classifier | PyTorch, Torchvision, EfficientNet-B0 (`best_wound_model_v2.pth`, 16 MB, included in repo) |
+| Retrieval | ChromaDB, Sentence-Transformers (`all-MiniLM-L6-v2`) |
+| Source ingestion | Requests, Beautiful Soup |
+| LLM | Groq (default) or any OpenAI-compatible OmniRoute endpoint |
 
-[!NOTE] These classes are model outputs, not medical diagnoses. The
-rejection classes cannot guarantee that every unfamiliar or unrelated
-image will be rejected correctly.
+---
 
-📁 Repository Structure
+## 🗂 Project structure
 
+```text
 ML-Project/
 ├── backend/
 │   ├── app/
-│   │   ├── api/routes.py
-│   │   ├── llm/
-│   │   ├── ml/predictor.py
-│   │   ├── rag/retriever.py
-│   │   ├── config.py
-│   │   └── main.py
+│   │   ├── api/routes.py            # /api/health and /api/analyze
+│   │   ├── ml/predictor.py          # loads the model, predicts class
+│   │   ├── rag/retriever.py         # ChromaDB retrieval
+│   │   ├── llm/                     # Groq + OmniRoute providers
+│   │   ├── config.py                # reads .env, class order
+│   │   └── main.py                  # FastAPI app + CORS
 │   ├── data/
-│   │   └── sources/
-│   │       ├── approved_sources.json
-│   │       └── README.md
-│   ├── models/
-│   │   └── best_wound_model_v2.pth   # Obtain separately if not committed
-│   ├── scripts/
-│   │   ├── ingest_sources.py
-│   │   ├── approve_sources.py
-│   │   ├── index_sources.py
-│   │   └── test_retrieval.py
-│   ├── .env.example
+│   │   ├── chroma/                  # ready-made vector index (45 passages)
+│   │   ├── sources/                 # approved_sources.json, snapshots.jsonl
+│   │   └── knowledge_base.json      # item/material aliases
+│   ├── models/best_wound_model_v2.pth
+│   ├── scripts/                     # ingest → approve → index → test
+│   ├── verify_model.py
 │   ├── requirements.txt
-│   └── verify_model.py
+│   └── .env.example
 ├── frontend/
-│   ├── src/
-│   ├── .env.example
+│   ├── src/ (main.jsx, style.css)
 │   ├── package.json
-│   └── vite.config.js
+│   └── .env.example
 └── README.md
+```
 
-Generated files such as the trained checkpoint, ChromaDB index, Python
-virtual environment, and embedding-model cache may not be included in
-Git. Follow the setup steps below for a fresh clone.
+> The trained model and the ChromaDB index are **already in the repository**, so you do **not** need to train anything or build the index to run the app.
 
-✅ Prerequisites
+---
 
-Install these before starting:
+## 🚀 Run it on your machine (step by step)
 
-Git
+You will open **two terminals**: one for the backend, one for the frontend. Total time: about 15–25 minutes (mostly downloads).
 
-Python 3.11 (recommended)
+### Step 0 — Install the prerequisites (one time)
 
-Node.js 20 or later and npm
+| Tool | Version | Download |
+|---|---|---|
+| Git | any recent | https://git-scm.com/downloads |
+| Python | **3.11** recommended | https://www.python.org/downloads/ — on Windows, tick **"Add python.exe to PATH"** in the installer |
+| Node.js | **20 or newer** (includes npm) | https://nodejs.org (choose LTS) |
+| Groq API key | free account | https://console.groq.com/keys → **Create API Key** → copy it (starts with `gsk_`) |
 
-Internet access for package installation, source ingestion, and the
-first embedding-model download
+Check they installed. Open a terminal (Windows: press `Win`, type **PowerShell**, Enter. Mac: press `Cmd+Space`, type **Terminal**, Enter) and type:
 
-The correct five-class checkpoint: best_wound_model_v2.pth
+```bash
+git --version
+python --version      # Mac/Linux: python3 --version
+node --version
+npm --version
+```
 
-A Groq API key or a running OmniRoute endpoint if you want
-LLM-formatted guidance
+Each must print a version number. If one says "not recognized" or "command not found", reinstall that tool and **restart the terminal**.
 
-⚙️ Setup & Installation
+### Step 1 — Clone the project
 
-1. Clone the integration branch
-
-git clone --branch integrate-rag-system --single-branch https://github.com/AryanTomar-codecollege/ML-Project.git
+```bash
+git clone https://github.com/AryanTomar-codecollege/ML-Project.git
 cd ML-Project
+```
 
-These instructions use integrate-rag-system, which contains the RAG
-integration. If the project has moved to a different branch, check the
-repository's branch list.
+### Step 2 — Backend: create a virtual environment and install packages
 
-2. Set up the backend
+> ⏳ This downloads PyTorch and other large packages (can take 5–15 minutes). Do not close the terminal.
 
-<details>
+**Windows (PowerShell)**
 
-<summary>
-
-<strong>{=html}Windows (PowerShell)</strong>{=html}
-
-</summary>
-
-Run from the repository root:
-
+```powershell
 cd backend
 py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-
-Create the environment file only if it does not already exist:
-
 Copy-Item .env.example .env
+```
 
-If PowerShell blocks activation, run:
+If activation fails with a "running scripts is disabled" error, run `Set-ExecutionPolicy -Scope Process Bypass`, press `Y`, then run the activate line again.
 
-Set-ExecutionPolicy -Scope Process Bypass
-.\.venv\Scripts\Activate.ps1
+**macOS / Linux**
 
-</details>
-
-<details>
-
-<summary>
-
-<strong>{=html}macOS / Linux</strong>{=html}
-
-</summary>
-
-Run from the repository root:
-
+```bash
 cd backend
 python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-
-Create the environment file only if it does not already exist:
-
 cp .env.example .env
+```
 
-</details>
+✅ **Success check:** your prompt now starts with `(.venv)`. If it does not, the environment is not active — run the activate line again.
 
-[!TIP] Keep the backend virtual environment activated while running
-backend setup, RAG scripts, verification, and the API server. Do not
-overwrite an existing .env file; edit it instead.
+### Step 3 — Add your Groq API key
 
-3. Add and verify the trained model
+Open the file `backend/.env` in any editor (Notepad, VS Code) and fill in the key:
 
-The trained model checkpoint may be excluded from Git because of its
-size. Obtain the correct five-class checkpoint from the project
-owner/training run and place it here:
-
-backend/models/best_wound_model_v2.pth
-
-Create the models directory if it does not exist.
-
-From the backend/ directory, with the virtual environment activated,
-run:
-
-python verify_model.py models/best_wound_model_v2.pth
-
-The checkpoint must match this class order:
-
-0 -> bruise
-1 -> burn
-2 -> cut
-3 -> no_injury
-4 -> not_known_image
-
-Do not continue if model verification fails. An older three-class
-checkpoint is not compatible with this five-class setup.
-
-4. Configure the language-model provider
-
-Edit backend/.env. Never commit API keys or .env files.
-
-<details>
-
-<summary>
-
-<strong>{=html}Option A --- Groq</strong>{=html}
-
-</summary>
-
-Set the provider and your own API key:
-
+```env
 LLM_PROVIDER=groq
-GROQ_API_KEY=YOUR_GROQ_API_KEY
-GROQ_BASE_URL=https://api.groq.com/openai/v1
-GROQ_MODEL=openai/gpt-oss-120b
+GROQ_API_KEY=gsk_paste_your_key_here
+```
 
-The model shown is a configured default, not a guarantee of current
-availability. Check your provider account for model access, limits, and
-possible charges.
+Save the file. **Never commit `.env` or share your key** (`.env` is already in `.gitignore`).
 
-</details>
+> Prefer a different provider? See [Configuration](#-configuration-env) for OmniRoute.
+
+### Step 4 — Download the embedding model (one time, needs internet)
+
+The backend loads the embedding model in **offline mode** (`local_files_only=True`), so it must already be on your computer. Download it once (still inside `backend/` with `(.venv)` active):
+
+```bash
+python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2'); print('Embedding model ready')"
+```
+
+✅ Expected last line: `Embedding model ready`.
+⚠️ **If you skip this step**, the app starts but `/api/health` shows `"rag_mode": "unavailable"` and every analysis fails with a 503 error.
+
+### Step 5 — Verify the model and the knowledge index
+
+```bash
+python verify_model.py models/best_wound_model_v2.pth
+```
+
+✅ Expected:
+
+```text
+Model loaded successfully.
+Class-index mapping:
+  0 -> bruise
+  1 -> burn
+  2 -> cut
+  3 -> no_injury
+  4 -> not_known_image
+```
+
+```bash
+python scripts/test_retrieval.py
+```
+
+✅ Expected: it prints `Mode: rag` and `RAG error: None`, followed by a few retrieved passages about cuts.
+
+### Step 6 — Start the backend (Terminal 1)
+
+```bash
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+The first start takes 10–30 seconds (loading PyTorch and the embedding model). When you see `Application startup complete`, leave this terminal **running**.
+
+Now open **http://127.0.0.1:8000/api/health** in your browser. You must see:
+
+```json
+{
+  "status": "ok",
+  "provider": "groq",
+  "model_loaded": true,
+  "rag_mode": "ready",
+  "rag_error": null,
+  "classes": ["bruise", "burn", "cut", "no_injury", "not_known_image"]
+}
+```
+
+If `model_loaded` is `false` or `rag_mode` is `unavailable`, jump to [Troubleshooting](#-troubleshooting) before going further.
+
+### Step 7 — Start the frontend (Terminal 2)
+
+Open a **new** terminal window (keep the backend running) and go to the project folder:
+
+**Windows (PowerShell)**
+
+```powershell
+cd path\to\ML-Project\frontend
+npm install
+Copy-Item .env.example .env
+npm run dev
+```
+
+**macOS / Linux**
+
+```bash
+cd path/to/ML-Project/frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+(Replace `path\to\ML-Project` with where you cloned it, e.g. `cd Desktop\ML-Project\frontend`.)
+
+`frontend/.env` must contain `VITE_API_URL=http://127.0.0.1:8000` (the example file already does). The terminal will print a link — open **http://127.0.0.1:5173** in your browser.
+
+> The frontend **must** run on port `5173` (the backend only allows that address through CORS). If port 5173 is busy, Vite will stop with an error instead of picking another port — close whatever is using it and run `npm run dev` again.
+
+🎉 **Done.** You should see the WoundGuide page.
+
+---
+
+## 🖥 Using the app
+
+1. Click **Start an analysis**.
+2. **Add a photo** — drag and drop, or click to choose (JPG / PNG / WEBP, max 10 MB). Use a clear, well-lit photo of a single injury.
+3. **Pick the items you have** (clean water, clean cloth, gauze, bandage, ice pack, soap) or type your own, separated by commas.
+4. Click **Get first-aid guidance**.
+5. Read the predicted class, confidence, *What to do*, *What not to do*, item tips, *Good signs* and *Warning signs*.
+6. Click the **Source** links and check the page really supports that instruction.
+
+Good test set: one cut, one burn, one bruise, one healthy-skin photo, one unrelated object (should be rejected).
+
+---
+
+## 📡 API reference
+
+Interactive docs: **http://127.0.0.1:8000/docs**
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| `GET` | `/` | Simple "API is running" message |
+| `GET` | `/api/health` | Model status, RAG status, provider, class list |
+| `POST` | `/api/analyze` | Analyze an image |
+
+`POST /api/analyze` takes `multipart/form-data`:
+
+| Field | Type | Example |
+|---|---|---|
+| `image` | file | `cut.jpg` |
+| `items` | text (comma separated) | `clean water, bandage` |
+
+Possible responses: `200` with guidance, `200` with `"rejected": true` (not an injury / model unsure), `400` bad image, `413` image too large, `502` LLM failed, `503` RAG unavailable.
+
+Try it from a terminal (macOS/Linux, or Windows with `curl.exe`):
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/analyze -F "image=@cut.jpg" -F "items=clean water, bandage"
+```
+
+---
+
+## ⚙️ Configuration (`.env`)
+
+All settings live in `backend/.env` (copied from `.env.example`).
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `MODEL_PATH` | `models/best_wound_model_v2.pth` | Classifier checkpoint |
+| `LLM_PROVIDER` | `groq` | `groq` or `omniroute` |
+| `GROQ_API_KEY` | *(empty)* | **Required** for the Groq provider |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` | Check your Groq account for model availability and limits |
+| `OMNIROUTE_BASE_URL` / `OMNIROUTE_API_KEY` / `OMNIROUTE_MODEL` | `http://localhost:20128/v1` / empty / `auto` | Only if using OmniRoute |
+| `MAX_IMAGE_MB` | `10` | Upload size limit |
+| `MIN_CONFIDENCE` | `55` | Below this, the prediction is rejected as "unsure" |
+| `MIN_MARGIN` | `12` | Minimum gap between top-2 class probabilities |
+| `RAG_ENABLED` | `true` | Turn retrieval on/off |
+| `RAG_DB_PATH` | `data/chroma` | Vector DB folder |
+| `RAG_COLLECTION` | `first_aid_guidance` | Must match the index |
+| `RAG_EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Must match the model used to build the index |
+| `RAG_MIN_SCORE` | `0.25` | Minimum similarity for a passage to be used |
 
 <details>
+<summary><b>Using OmniRoute instead of Groq</b></summary>
 
-<summary>
+Only if you already have an OpenAI-compatible OmniRoute endpoint running:
 
-<strong>{=html}Option B --- OmniRoute</strong>{=html}
-
-</summary>
-
-Use this option only if an OpenAI-compatible OmniRoute endpoint is
-already running. Adjust the URL, model, and key to match your setup:
-
+```env
 LLM_PROVIDER=omniroute
-OMNIROUTE_API_KEY=
+OMNIROUTE_API_KEY=your_key_if_required
 OMNIROUTE_BASE_URL=http://localhost:20128/v1
 OMNIROUTE_MODEL=auto
+```
 
+Restart the backend after editing `.env`.
 </details>
 
-Keep the RAG settings consistent with the index you build. Typical
-settings in the example configuration are:
+---
 
-RAG_ENABLED=true
-RAG_DB_PATH=data/chroma
-RAG_COLLECTION=first_aid_guidance
-RAG_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
-RAG_MIN_SCORE=0.25
-MAX_IMAGE_MB=10
-MIN_CONFIDENCE=55
-MIN_MARGIN=12
+## 🔄 Optional: rebuild the RAG knowledge index
 
-Use backend/.env.example as the source of truth for supported variable
-names and defaults.
+**You don't need this to run the project** — the index is already included. Do this only if you want to change the sources in `backend/data/sources/approved_sources.json`.
 
-5. Prepare the RAG knowledge index
+Run from `backend/` with `(.venv)` active, in this order:
 
-If the local ChromaDB index is absent, create it by following the steps
-below. Run all commands from backend/ with the virtual environment
-activated.
+```bash
+python scripts/ingest_sources.py                       # 1. download pages -> data/sources/snapshots.jsonl
+# 2. MANUALLY open snapshots.jsonl and check every record's URL, text and injury label.
+#    Delete or fix anything wrong or irrelevant.
+python scripts/approve_sources.py --approve-reviewed   # 3. marks ALL records as human-reviewed
+python scripts/index_sources.py                        # 4. rebuilds data/chroma (deletes the old index!)
+python scripts/test_retrieval.py                       # 5. must print "Mode: rag"
+```
 
-5.1 Ingest source pages
+> ⚠️ Step 3 is a statement that **you** reviewed everything — never run it before step 2. Step 4 **deletes and recreates** `data/chroma`. Some websites block automated downloads, so a few sources may be skipped.
 
-python scripts/ingest_sources.py
+---
 
-This reads the configured source list and writes extracted text to:
+## 🛠 Troubleshooting
 
-backend/data/sources/snapshots.jsonl
+<details>
+<summary><b><code>"rag_mode": "unavailable"</code> in /api/health, or 503 error in the UI</b></summary>
 
-Some websites may block automated requests or change their page
-structure, so not every source is guaranteed to download.
+Most common cause: the embedding model was never downloaded. Run the Step 4 command again (with internet on), restart the backend, then re-check `/api/health`. The `rag_error` field in the health response tells you the exact reason.
+</details>
 
-5.2 Review snapshots before approval
+<details>
+<summary><b><code>model_loaded: false</code> / "Model not found" / class-order error</b></summary>
 
-Open backend/data/sources/snapshots.jsonl. Review the URL, extracted
-text, and injury category for every record. Correct or remove
-unsuitable, irrelevant, or poorly extracted content.
+Make sure `backend/models/best_wound_model_v2.pth` exists, that you cloned the full repository, and that `MODEL_PATH` in `.env` is correct. Run `python verify_model.py models/best_wound_model_v2.pth` and read the error.
+</details>
 
-[!WARNING] Do not approve records you have not reviewed. The
-approval script records a review decision; it does not independently
-establish medical accuracy.
+<details>
+<summary><b>"No module named ..." / "uvicorn is not recognized"</b></summary>
 
-5.3 Approve reviewed snapshots
+The virtual environment is not active. `cd backend`, activate it (`.\.venv\Scripts\Activate.ps1` on Windows, `source .venv/bin/activate` on Mac/Linux), confirm `(.venv)` shows in the prompt, then `pip install -r requirements.txt` again.
+</details>
 
-Only after reviewing every record currently in the snapshot file, run:
+<details>
+<summary><b>PyTorch installation fails</b></summary>
 
-python scripts/approve_sources.py --approve-reviewed
+Use Python 3.11, upgrade pip (`python -m pip install --upgrade pip`), and retry. If it still fails, install a PyTorch/Torchvision build for your OS from https://pytorch.org/get-started/locally/ and then run `pip install -r requirements.txt` again.
+</details>
 
-This command marks all records in the current snapshot file as reviewed.
-Do not run it until the review is complete.
+<details>
+<summary><b>"AttributeError: ... has no attribute 'encode_query'"</b></summary>
 
-5.4 Build the index
+Your `sentence-transformers` is too old (the code needs version 5 or newer). Run `pip install -U "sentence-transformers>=5.0,<6.0"` and restart the backend.
+</details>
 
-python scripts/index_sources.py
+<details>
+<summary><b>502 error: "The configured LLM provider failed"</b></summary>
 
-This embeds approved passages and builds the ChromaDB index. The first
-run may download the Sentence Transformers model and therefore needs
-internet access.
+Check that `GROQ_API_KEY` is set in `backend/.env` (no spaces or quotes), that your Groq account can use the model in `GROQ_MODEL`, that you have not hit a rate limit, and that you are online. Restart the backend after any `.env` change.
+</details>
 
-[!CAUTION] The index script recreates the configured vector database
-directory. Back up an existing index before running this command if
-you need to preserve it.
+<details>
+<summary><b>Frontend shows "Failed to fetch" / cannot reach backend</b></summary>
 
-5.5 Test retrieval
+Confirm the backend terminal is still running and `http://127.0.0.1:8000/api/health` opens. Confirm `frontend/.env` has `VITE_API_URL=http://127.0.0.1:8000`, then stop and restart `npm run dev` (Vite reads `.env` only at start). Open the app at `127.0.0.1:5173` or `localhost:5173` — other ports are blocked by CORS.
+</details>
 
-python scripts/test_retrieval.py
+<details>
+<summary><b>"Port 5173 is already in use" / "port 8000 already in use"</b></summary>
 
-A healthy retrieval test should report:
+Another program (or an old terminal of this project) is using the port. Close it and start again. For the backend you may use another port with `--port 8001`, but then update `VITE_API_URL` and add that origin to the CORS list in `backend/app/main.py`.
+</details>
 
-Mode: rag
-RAG error: None
+<details>
+<summary><b>Windows: <code>py -3.11</code> not found</b></summary>
 
-It should also display retrieved passages for a sample query.
+Install Python 3.11 from python.org (tick "Add python.exe to PATH" and "py launcher"), reopen PowerShell, and retry. Check with `py -0` which versions are installed.
+</details>
 
-6. Start the backend API
+---
 
-From backend/, run:
+## ⚠️ Known limitations
 
-python -m compileall app scripts
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+- The classifier can misclassify unfamiliar images and is not clinically validated. **Confidence ≠ medical accuracy.**
+- Rejection of non-injury images is not guaranteed for every unfamiliar picture.
+- A valid citation ID does not prove that the source semantically supports a statement — **open the source and check.**
+- The `bruise` category currently includes an NHS *black eye* page, so an eye-specific source can appear for a bruise elsewhere on the body. Review retrieved passages.
+- The index holds 45 passages from 8 sources; 3 of the 11 sources in `approved_sources.json` have no snapshot (the websites likely blocked automated download).
+- LLM provider model names, limits and pricing can change.
 
-Keep this terminal open.
+---
 
-Endpoint                             Purpose
+## 🔐 Security & privacy
 
-http://127.0.0.1:8000/             API root/status
-http://127.0.0.1:8000/api/health   Backend, model, and RAG status
-http://127.0.0.1:8000/docs         Interactive API documentation
+- Keep `.env` and API keys private; never commit them.
+- Do not upload sensitive or identifiable personal images.
+- Do not expose the development server to the public internet.
+- Only ingest sources you are allowed to use.
 
-Before using the frontend, check that the health endpoint reports the
-API is healthy, the model is loaded, and RAG is ready.
+---
 
-7. Set up and start the frontend
+<div align="center">
 
-Open a second terminal. Leave the backend terminal running.
+**WoundGuide** — educational college project · Not a diagnostic tool · Always seek professional care when in doubt
 
-From the repository root:
+Made by [Aryan Tomar](https://github.com/AryanTomar-codecollege)
 
-cd frontend
-npm install
-
-Create frontend/.env only if it does not already exist:
-
-Windows PowerShell
-
-Copy-Item .env.example .env
-
-macOS / Linux
-
-cp .env.example .env
-
-Check that frontend/.env contains:
-
-VITE_API_URL=http://127.0.0.1:8000
-
-Then build and start Vite:
-
-npm run build
-npm run dev
-
-Open the local URL printed by Vite, usually http://127.0.0.1:5173. If
-you change the frontend .env, restart Vite.
-
-🧪 Test Checklist
-
-/api/health reports the model is loaded and RAG is ready.
-
-The frontend opens without build or browser-console errors.
-
-A bruise image returns the expected type of result.
-
-A burn image returns the expected type of result.
-
-A cut image returns the expected type of result.
-
-Normal skin and unrelated objects are tested for rejection
-behavior.
-
-Source links open the intended webpages.
-
-Each instruction's citation is relevant to that instruction and
-injury.
-
-Duplicate links are not unnecessarily repeated.
-
-RAG-unavailable/provider-error states are handled without
-pretending unsupported guidance is verified.
-
-🔌 API Reference
-
-GET /api/health
-
-Reports API health, model status, RAG status, and relevant configuration
-details.
-
-POST /api/analyze
-
-Accepts a multipart request with:
-
-Field     Description
-
-image   Image file to classify
-items   Available supplies, typically a comma-separated string
-
-The response may contain the prediction, class probabilities, structured
-guidance, source citations, and provider/retrieval status. Consult
-/docs for the live response schema.
-
-🔎 Citation Quality & Known Limitations
-
-The backend can validate that a returned citation ID belongs to
-retrieved evidence, but this does not prove the passage
-semantically supports the associated statement.
-
-Retrieval quality depends on approved-source coverage, page
-extraction, chunking, metadata, embeddings, and query design.
-
-An anatomically specific page (for example, guidance about a black
-eye) may be retrieved for a bruise on another body part if source
-coverage and ranking are not sufficiently specific. Review sources
-and improve the approved-source list when this occurs.
-
-Some websites may block automated ingestion. Always inspect
-snapshots before approval.
-
-Duplicate links should be deduplicated by URL/source identity
-without hiding genuinely distinct sources.
-
-LLM availability, model names, rate limits, and pricing can change.
-
-The classifier may misclassify unfamiliar images and has not been
-clinically validated.
-
-🛠️ Troubleshooting
-
-Problem                             What to check
-
-Model checkpoint not found          Ensure
-backend/models/best_wound_model_v2.pth
-exists and MODEL_PATH is correct.
-
-Checkpoint size/class mismatch      Use the five-class checkpoint, not the
-older three-class model.
-
-Python module missing               Activate .venv and run
-pip install -r requirements.txt.
-
-PyTorch installation fails          Install a compatible PyTorch/Torchvision
-build for Python 3.11 and your OS, then
-reinstall requirements.
-
-model_loaded is false             Read the backend terminal error and verify
-the checkpoint.
-
-RAG unavailable                     Check RAG_ENABLED, database path,
-collection name, embedding model, and
-/api/health error details.
-
-Retrieval test fails                Run ingestion, manual review, approval,
-indexing, and retrieval test in order.
-
-Some sources were skipped           The website may block requests or have
-changed its markup; inspect snapshots.
-
-Groq provider fails                 Check API key, model availability, account
-limits, and network access.
-
-OmniRoute provider fails            Check the endpoint is running and the
-configured URL/model are correct.
-
-Frontend cannot reach backend       Confirm Uvicorn runs on port 8000 and
-VITE_API_URL is correct; restart Vite
-after editing .env.
-
-Vite uses another port              Open the URL printed in the frontend
-terminal.
-
-Duplicate citation links            Inspect returned citation data and
-deduplicate identical source URLs.
-
-🔐 Security & Privacy
-
-Keep .env files, API keys, and private credentials out of Git.
-
-Do not commit personal or sensitive images.
-
-Only ingest sources you are permitted to use.
-
-Review medical source content and generated guidance before relying
-on it.
-
-Do not expose the development server publicly without suitable
-security controls.
-
-⚖️ Disclaimer
-
-WoundGuide is an educational college project. It is not a diagnostic
-system, has not been clinically validated, and does not replace a
-qualified healthcare professional. Predictions, confidence scores,
-retrieved passages, and citations may be wrong or incomplete.
+</div>
