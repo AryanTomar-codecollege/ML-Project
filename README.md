@@ -602,6 +602,6 @@ WoundGuide is an **educational college project**, not a diagnostic or treatment 
 
 <div align="center">
 
-Made by [Aryan Tomar](https://github.com/AryanTomar-codecollege)
+Made by [Aryan Tomar And Team](https://github.com/AryanTomar-codecollege)
 
 </div>
